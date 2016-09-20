@@ -1,8 +1,10 @@
 import argparse
 import cookielib
 import itertools
+import json
 import mechanize
 import re
+import tabulate
 import time
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
@@ -72,44 +74,91 @@ def page_parse(data):
         try:
             titlematch = titleRE.match(element.attrs['title'])
             valuematch = valueRE.match(element.attrs['value'])
+
             depart = datetime.strptime(valuematch.group(1) + " " + titlematch.group(3), "%Y %m %d %I:%M%p")
             arrive = datetime.strptime(valuematch.group(1) + " " + titlematch.group(4), "%Y %m %d %I:%M%p")
             if arrive < depart:
                 arrive += timedelta(days=1)
+
+            if "Nonstop" in titlematch.group(5):
+                num_stops = 0
+            else:
+                num_stops = int(titlematch.group(5)[0])
+
             if titlematch.group(1) in options:
-                options[titlematch.group(1)]["fares_usd"].append(titlematch.group(2))
+                options[titlematch.group(1)]["fares_usd"].append(int(titlematch.group(2)))
                 options[titlematch.group(1)]["fares_usd"].sort()
             else:
-                options[titlematch.group(1)] = ({"fares_usd": [titlematch.group(2)], "depart": depart,
-                                                 "arrive": arrive, "stop_info": titlematch.group(5),
-                                                 "depart_tz": valuematch.group(2)})
+                options[titlematch.group(1)] = ({"fares_usd": [int(titlematch.group(2))],
+                                                 "depart": depart.isoformat(),
+                                                 "arrive": arrive.isoformat(),
+                                                 "stop_info": titlematch.group(5),
+                                                 "depart_tz": valuematch.group(2),
+                                                 "flight_num": titlematch.group(1),
+                                                 "num_stops": num_stops})
         except Exception as e:
             print e
 
-    return options
+    return options.values()
+
+
+def pretty_print_flights(flights, sort, lowest_fare, max_stops):
+    keys = ["flight_num", "depart", "arrive", "fares_usd", "stop_info", "num_stops"]
+    flight_list = []
+    for flight in flights:
+        if max_stops is not None and flight["num_stops"] > max_stops:
+            continue
+
+        if lowest_fare:
+            flight["fares_usd"] = min(flight["fares_usd"])
+
+        thisflight = []
+        for key in keys:
+            thisflight.append(flight[key])
+
+        flight_list.append(thisflight)
+
+    flight_list.sort(key=lambda l: l[keys.index(sort)])
+    print tabulate.tabulate(flight_list, headers=keys)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-a', '--arrival-cities', action='store', nargs="+", choices=cities)
 parser.add_argument('-d', '--departure-cities', action='store', nargs="+", choices=cities)
 parser.add_argument('-t', '--dates', action='store', nargs="+")
+parser.add_argument('-s', '--sort', action='store', choices=["flight_num", "depart", "arrive", "fares_usd",
+                                                             "stop_info", "num_stops"])
+parser.add_argument('-l', '--show-only-lowest-fare', action='store_true', help="Only shows the lowest fare " +
+                    "for each route.")
+parser.add_argument('-m', '--max-stops', type=int, help="Filter for flights with this many stops or less.")
+parser.add_argument('-e', '--export-file', type=str, help="Save results to a file. Useful if you want to " +
+                    "sort and filter the same results different ways without re-making the server requests.")
+parser.add_argument('-i', '--import-file', type=str, help="Load results from a file create with --export.")
 
 args = parser.parse_args(namespace=None)
 
-options = {}
-i = 0
-possible = len(args.dates) * len(args.departure_cities) * len(args.arrival_cities)
+if args.import_file is not None:
+    with open(args.import_file, "r") as f:
+        options = json.load(f)
+else:
+    options = []
+    i = 0
+    possible = len(args.dates) * len(args.departure_cities) * len(args.arrival_cities)
 
-for route in itertools.product(args.dates, args.departure_cities, args.arrival_cities):
-    try:
-        page = page_grab(*route)
-        options.update(page_parse(page))
-        i += 1
-        print "Processed %i/%i" % (i, possible)
-        if i < possible:
-            # do not decrease this - avoids putting undue strain on SW's servers
-            time.sleep(2)
-    except Exception as e:
-        print e
-        continue
+    for route in itertools.product(args.dates, args.departure_cities, args.arrival_cities):
+        try:
+            page = page_grab(*route)
+            options += page_parse(page)
+            i += 1
+            print "Processed %i/%i" % (i, possible)
+            if i < possible:
+                # do not decrease this - avoids putting undue strain on SW's servers
+                time.sleep(2)
+        except Exception as e:
+            print e
+            continue
 
-print options
+if args.export_file is not None:
+    with open(args.export_file, "w") as f:
+        json.dump(options, f)
+
+pretty_print_flights(options, args.sort, args.show_only_lowest_fare, args.max_stops)
