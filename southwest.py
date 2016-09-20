@@ -86,12 +86,12 @@ def page_parse(data):
                 num_stops = int(titlematch.group(5)[0])
 
             if titlematch.group(1) in options:
-                options[titlematch.group(1)]["fares_usd"].append(int(titlematch.group(2)))
-                options[titlematch.group(1)]["fares_usd"].sort()
+                options[titlematch.group(1)]["fares"].append(int(titlematch.group(2)))
+                options[titlematch.group(1)]["fares"].sort()
             else:
-                options[titlematch.group(1)] = ({"fares_usd": [int(titlematch.group(2))],
-                                                 "depart": depart.isoformat(),
-                                                 "arrive": arrive.isoformat(),
+                options[titlematch.group(1)] = ({"fares": [int(titlematch.group(2))],
+                                                 "depart": depart.strftime("%Y/%m/%d %H:%M"),
+                                                 "arrive": arrive.strftime("%Y/%m/%d %H:%M"),
                                                  "stop_info": titlematch.group(5),
                                                  "depart_tz": valuematch.group(2),
                                                  "flight_num": titlematch.group(1),
@@ -102,15 +102,15 @@ def page_parse(data):
     return options.values()
 
 
-def pretty_print_flights(flights, sort, lowest_fare, max_stops):
-    keys = ["flight_num", "depart", "arrive", "fares_usd", "stop_info", "num_stops"]
+def pretty_print_flights(flights, sort, lowest_fare, max_stops, reverse):
+    keys = ["flight_num", "depart", "arrive", "fares", "stop_info", "num_stops"]
     flight_list = []
     for flight in flights:
         if max_stops is not None and flight["num_stops"] > max_stops:
             continue
 
         if lowest_fare:
-            flight["fares_usd"] = min(flight["fares_usd"])
+            flight["fares"] = min(flight["fares"])
 
         thisflight = []
         for key in keys:
@@ -118,15 +118,18 @@ def pretty_print_flights(flights, sort, lowest_fare, max_stops):
 
         flight_list.append(thisflight)
 
-    flight_list.sort(key=lambda l: l[keys.index(sort)])
+    if sort is not None:
+        flight_list.sort(key=lambda l: l[keys.index(sort)], reverse=reverse)
     print tabulate.tabulate(flight_list, headers=keys)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-a', '--arrival-cities', action='store', nargs="+", choices=cities)
 parser.add_argument('-d', '--departure-cities', action='store', nargs="+", choices=cities)
 parser.add_argument('-t', '--dates', action='store', nargs="+")
-parser.add_argument('-s', '--sort', action='store', choices=["flight_num", "depart", "arrive", "fares_usd",
+parser.add_argument('-s', '--sort', action='store', choices=["flight_num", "depart", "arrive", "fares",
                                                              "stop_info", "num_stops"])
+parser.add_argument('-r', '--reverse', action='store_true', help="Reverse sort order for key of choice.",
+                    default=False)
 parser.add_argument('-l', '--show-only-lowest-fare', action='store_true', help="Only shows the lowest fare " +
                     "for each route.")
 parser.add_argument('-m', '--max-stops', type=int, help="Filter for flights with this many stops or less.")
@@ -161,4 +164,4 @@ if args.export_file is not None:
     with open(args.export_file, "w") as f:
         json.dump(options, f)
 
-pretty_print_flights(options, args.sort, args.show_only_lowest_fare, args.max_stops)
+pretty_print_flights(options, args.sort, args.show_only_lowest_fare, args.max_stops, args.reverse)
