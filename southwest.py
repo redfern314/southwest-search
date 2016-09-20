@@ -65,9 +65,9 @@ def page_parse(data):
         except:
             continue
 
-    titleRE = re.compile("Departing flight ([0-9/]*) \$([0-9]*) ([0-9]?[0-9]:[0-9]{2}(?:AM|PM)) depart " +
-                         "([0-9]?[0-9]:[0-9]{2}(?:AM|PM)) arrive (.*)")
-    valueRE = re.compile("([0-9]{4} [0-9]{2} [0-9]{2}),([^,])*,.*")
+    titleRE = re.compile("Departing flight ([0-9/]*) \$([0-9]*) ([0-9]?[0-9]:[0-9]*(?:AM|PM)) depart " +
+                         "([0-9]?[0-9]:[0-9]*(?:AM|PM)) arrive (.*)")
+    valueRE = re.compile("([0-9]* [0-9]* [0-9]*),([^,])*,.*")
 
     options = {}
     for element in elements:
