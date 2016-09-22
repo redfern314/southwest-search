@@ -10,15 +10,15 @@ import time
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
-cities = ['GSP', 'FNT', 'BOS', 'OAK', 'LIT', 'BOI', 'SAN', 'DCA', 'LBB', 'BWI',
-          'PIT', 'RIC', 'SAT', 'JAX', 'IAD', 'JAN', 'HRL', 'CHS', 'EYW', 'BNA',
-          'PHL', 'SNA', 'SFO', 'PHX', 'LAX', 'MAF', 'LAS', 'CRP', 'CMH', 'FLL',
-          'DEN', 'DTW', 'BUR', 'ROC', 'GEG', 'BUF', 'GRR', 'BDL', 'DSM', 'EWR',
-          'MHT', 'PBI', 'RNO', 'OKC', 'IND', 'ATL', 'ISP', 'SMF', 'BKG', 'PVD',
-          'SEA', 'ECP', 'ICT', 'MDW', 'RDU', 'PDX', 'CLE', 'SJU', 'AUS', 'CLT',
-          'SJC', 'ELP', 'OMA', 'MEM', 'TUS', 'ALB', 'TUL', 'ORF', 'MKE', 'MSY',
-          'MSP', 'CAK', 'TPA', 'DAL', 'DAY', 'ONT', 'STL', 'ABQ', 'HOU', 'SLC',
-          'MCO', 'RSW', 'BHM', 'MCI', 'PNS', 'LGA', 'AMA', 'SDF', 'PWM']
+# Airports that Southwest operates out of
+cities = ['ABQ', 'ALB', 'AMA', 'ATL', 'AUA', 'AUS', 'BDL', 'BHM', 'BNA', 'BOI', 'BOS', 'BOT', 'BUF', 'BUR',
+          'BWI', 'BZE', 'CAK', 'CHS', 'CLE', 'CLT', 'CMH', 'CNN', 'CRP', 'CUN', 'CVL', 'DAL', 'DAY', 'DCA',
+          'DEN', 'DSM', 'DTW', 'ECP', 'ELP', 'EWR', 'FLL', 'FNT', 'GEG', 'GRR', 'GSP', 'HOU', 'HRL', 'IAD',
+          'ICT', 'IND', 'ISP', 'JAX', 'LAS', 'LAX', 'LBB', 'LGA', 'LGB', 'LIR', 'LIT', 'LOS', 'MAF', 'MBJ',
+          'MCI', 'MCO', 'MDW', 'MEM', 'MEX', 'MHT', 'MKE', 'MMA', 'MSP', 'MSY', 'NAS', 'NFB', 'NWY', 'OAK',
+          'OKC', 'OMA', 'ONT', 'ORF', 'PBI', 'PDX', 'PHL', 'PHX', 'PIT', 'PNS', 'PUJ', 'PVD', 'PVR', 'PWM',
+          'RDU', 'RIC', 'RNO', 'ROC', 'RSW', 'SAN', 'SAT', 'SDF', 'SEA', 'SFC', 'SFO', 'SJC', 'SJD', 'SJO',
+          'SJU', 'SLC', 'SMF', 'SNA', 'STL', 'TPA', 'TUL', 'TUS', 'WDC']
 
 
 def page_grab(date, depart, arrive):
@@ -33,15 +33,9 @@ def page_grab(date, depart, arrive):
     br.set_handle_redirect(True)
     br.set_handle_referer(True)
     br.set_handle_robots(False)
-
-    # Follows refresh 0 but not hangs on refresh > 0
     br.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=1)
 
-    # Want debugging messages?
-    # br.set_debug_http(True)
-    # br.set_debug_redirects(True)
-    # br.set_debug_responses(True)
-
+    # You can set your own personal user agent here if you want; doesn't really matter
     br.addheaders = [('User-agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
 
     br.open("http://www.southwest.com/flight/search-flight.html")
@@ -99,7 +93,7 @@ def page_parse(data):
                                                             "route": route,
                                                             "stop_info": titlematch.group('stop_info'),
                                                             "flight_num": titlematch.group('flight_num'),
-                                                            "flight_time": valuematch.group('flight_time'),
+                                                            "flight_time": valuematch.group('flight_time').zfill(5),
                                                             "num_stops": len(route)-2})
         except Exception as e:
             print e
@@ -134,16 +128,16 @@ parser.add_argument('-a', '--arrival-cities', action='store', nargs="+", require
 parser.add_argument('-d', '--departure-cities', action='store', nargs="+", required=True)
 parser.add_argument('-t', '--dates', action='store', nargs="+", required=True)
 parser.add_argument('-s', '--sort', action='store', choices=["flight_num", "depart", "arrive", "fares",
-                                                             "num_stops", "flight_time"])
+                    "num_stops", "flight_time"], help="Choose which column you want to sort results by.")
 parser.add_argument('-r', '--reverse', action='store_true', help="Reverse sort order for key of choice.",
                     default=False)
 parser.add_argument('-l', '--show-only-lowest-fare', action='store_true', help="Only shows the lowest fare " +
-                    "for each route.")
+                    "for each route. (Usually a 'Wanna Get Away?' fare, but could be a different type.")
 parser.add_argument('-m', '--max-stops', type=int, help="Filter for flights with this many stops or less.")
 parser.add_argument('-e', '--export-file', type=str, help="Save results to a file. Useful if you want to " +
                     "sort and filter the same results different ways without re-making the server requests.")
 parser.add_argument('-i', '--import-file', type=str, help="Load results from a file create with --export.")
-parser.add_argument('-v', '--stop-info', action='store_true', help="Display verbose info about stops and layovers")
+parser.add_argument('-v', '--stop-info', action='store_true', help="Display verbose info about stops.")
 
 args = parser.parse_args(namespace=None)
 
