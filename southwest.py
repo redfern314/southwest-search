@@ -4,6 +4,7 @@ import itertools
 import json
 import mechanize
 import re
+import sys
 import tabulate
 import time
 from datetime import datetime, timedelta
@@ -123,11 +124,11 @@ def pretty_print_flights(flights, sort, lowest_fare, max_stops, reverse):
     print tabulate.tabulate(flight_list, headers=keys)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-a', '--arrival-cities', action='store', nargs="+", choices=cities)
-parser.add_argument('-d', '--departure-cities', action='store', nargs="+", choices=cities)
-parser.add_argument('-t', '--dates', action='store', nargs="+")
+parser.add_argument('-a', '--arrival-cities', action='store', nargs="+", required=True)
+parser.add_argument('-d', '--departure-cities', action='store', nargs="+", required=True)
+parser.add_argument('-t', '--dates', action='store', nargs="+", required=True)
 parser.add_argument('-s', '--sort', action='store', choices=["flight_num", "depart", "arrive", "fares",
-                                                             "stop_info", "num_stops"])
+                                                             "num_stops"])
 parser.add_argument('-r', '--reverse', action='store_true', help="Reverse sort order for key of choice.",
                     default=False)
 parser.add_argument('-l', '--show-only-lowest-fare', action='store_true', help="Only shows the lowest fare " +
@@ -138,6 +139,11 @@ parser.add_argument('-e', '--export-file', type=str, help="Save results to a fil
 parser.add_argument('-i', '--import-file', type=str, help="Load results from a file create with --export.")
 
 args = parser.parse_args(namespace=None)
+
+for city in (args.arrival_cities + args.departure_cities):
+    if city not in cities:
+        print "Departure and arrival cities must be one of the following: %s" % cities
+        sys.exit()
 
 if args.import_file is not None:
     with open(args.import_file, "r") as f:
