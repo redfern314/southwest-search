@@ -66,45 +66,51 @@ def page_parse(data):
         except:
             continue
 
-    titleRE = re.compile("Departing flight ([0-9/]*) \$([0-9]*) ([0-9]?[0-9]:[0-9]*(?:AM|PM)) depart " +
-                         "([0-9]?[0-9]:[0-9]*(?:AM|PM)) arrive (.*)")
-    valueRE = re.compile("([0-9]* [0-9]* [0-9]*),([^,])*,.*")
+    titleRE = re.compile("Departing flight (?P<flight_num>[0-9/]*) \$(?P<fare>[0-9]*) (?P<depart>[0-9]?[0-9]:[0-9]*(?:AM|PM)) depart " +
+                         "(?P<arrive>[0-9]?[0-9]:[0-9]*(?:AM|PM)) arrive (?P<stop_info>.*)")
+    valueRE = re.compile("(?P<date>[0-9]* [0-9]* [0-9]*),(?:[^,]*,){3}(?P<flight_time>[^,]*),(?P<stop_list>(?:[^,]*,[a-zA-Z]*,[a-zA-Z]*,(?:[^,]*,){6}[^,]*,?)+)")
+    segmentsRE = re.compile("[^,]*,(?P<depart_airport>[a-zA-Z]*),(?P<arrive_airport>[a-zA-Z]*),(?:[^,]*,){6}([^,]*),?")
 
     options = {}
     for element in elements:
         try:
             titlematch = titleRE.match(element.attrs['title'])
             valuematch = valueRE.match(element.attrs['value'])
+            segmentmatch = segmentsRE.findall(valuematch.group('stop_list'))
 
-            depart = datetime.strptime(valuematch.group(1) + " " + titlematch.group(3), "%Y %m %d %I:%M%p")
-            arrive = datetime.strptime(valuematch.group(1) + " " + titlematch.group(4), "%Y %m %d %I:%M%p")
+            route = [segmentmatch[0][0]]
+            for seg in segmentmatch:
+                if seg[2] != '-':
+                    route.append(seg[2])
+                route.append(seg[1])
+
+            depart = datetime.strptime(valuematch.group('date') + " " + titlematch.group('depart'), "%Y %m %d %I:%M%p")
+            arrive = datetime.strptime(valuematch.group('date') + " " + titlematch.group('arrive'), "%Y %m %d %I:%M%p")
             if arrive < depart:
                 arrive += timedelta(days=1)
 
-            if "Nonstop" in titlematch.group(5):
-                num_stops = 0
+            if titlematch.group('flight_num') in options:
+                options[titlematch.group('flight_num')]["fares"].append(int(titlematch.group(2)))
+                options[titlematch.group('flight_num')]["fares"].sort()
             else:
-                num_stops = int(titlematch.group(5)[0])
-
-            if titlematch.group(1) in options:
-                options[titlematch.group(1)]["fares"].append(int(titlematch.group(2)))
-                options[titlematch.group(1)]["fares"].sort()
-            else:
-                options[titlematch.group(1)] = ({"fares": [int(titlematch.group(2))],
-                                                 "depart": depart.strftime("%Y/%m/%d %H:%M"),
-                                                 "arrive": arrive.strftime("%Y/%m/%d %H:%M"),
-                                                 "stop_info": titlematch.group(5),
-                                                 "depart_tz": valuematch.group(2),
-                                                 "flight_num": titlematch.group(1),
-                                                 "num_stops": num_stops})
+                options[titlematch.group('flight_num')] = ({"fares": [int(titlematch.group(2))],
+                                                            "depart": depart.strftime("%Y/%m/%d %H:%M"),
+                                                            "arrive": arrive.strftime("%Y/%m/%d %H:%M"),
+                                                            "route": route,
+                                                            "stop_info": titlematch.group('stop_info'),
+                                                            "flight_num": titlematch.group('flight_num'),
+                                                            "flight_time": valuematch.group('flight_time'),
+                                                            "num_stops": len(route)-2})
         except Exception as e:
             print e
 
     return options.values()
 
 
-def pretty_print_flights(flights, sort, lowest_fare, max_stops, reverse):
-    keys = ["flight_num", "depart", "arrive", "fares", "stop_info", "num_stops"]
+def pretty_print_flights(flights, sort, lowest_fare, max_stops, reverse, stop_info):
+    keys = ["flight_num", "depart", "arrive", "fares", "route", "num_stops", "flight_time"]
+    if stop_info:
+        keys.append("stop_info")
     flight_list = []
     for flight in flights:
         if max_stops is not None and flight["num_stops"] > max_stops:
@@ -128,7 +134,7 @@ parser.add_argument('-a', '--arrival-cities', action='store', nargs="+", require
 parser.add_argument('-d', '--departure-cities', action='store', nargs="+", required=True)
 parser.add_argument('-t', '--dates', action='store', nargs="+", required=True)
 parser.add_argument('-s', '--sort', action='store', choices=["flight_num", "depart", "arrive", "fares",
-                                                             "num_stops"])
+                                                             "num_stops", "flight_time"])
 parser.add_argument('-r', '--reverse', action='store_true', help="Reverse sort order for key of choice.",
                     default=False)
 parser.add_argument('-l', '--show-only-lowest-fare', action='store_true', help="Only shows the lowest fare " +
@@ -137,6 +143,7 @@ parser.add_argument('-m', '--max-stops', type=int, help="Filter for flights with
 parser.add_argument('-e', '--export-file', type=str, help="Save results to a file. Useful if you want to " +
                     "sort and filter the same results different ways without re-making the server requests.")
 parser.add_argument('-i', '--import-file', type=str, help="Load results from a file create with --export.")
+parser.add_argument('-v', '--stop-info', action='store_true', help="Display verbose info about stops and layovers")
 
 args = parser.parse_args(namespace=None)
 
@@ -170,4 +177,5 @@ if args.export_file is not None:
     with open(args.export_file, "w") as f:
         json.dump(options, f)
 
-pretty_print_flights(options, args.sort, args.show_only_lowest_fare, args.max_stops, args.reverse)
+pretty_print_flights(options, args.sort, args.show_only_lowest_fare, args.max_stops, args.reverse,
+                     args.stop_info)
