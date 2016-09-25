@@ -8,7 +8,7 @@ License: MIT
 ## Description
 This script is a rudimentary search engine for Southwest Airlines flights. I created it because I love flying Southwest SO MUCH, but the search functionality on their website is incredibly painful when you have flexible airports or flexible dates. Flying anywhere with more than 1 or 2 variables is a nightmare - you have to open multiple browser windows to southwest.com for each possible combination.
 
-Give southwest.py a list of airports you're able to fly out of and into, a list of dates you can fly, and what you want to optimize for (cost, time, number of stops). It'll return all possible flights sorted by your chosen criteria! Maybe you want to fly from any of the 3 SF-area airports to any of the 3 NY-area airports anytime during the week of Thanksgiving, for example. And you want to do it cheaply. See the end of this readme for examples on how you could do that.
+Give southwest.py a list of airports you're able to fly out of and into, a list of dates you can fly, and what you want to optimize for (cost, time, number of stops). It'll return all possible flights sorted by your chosen criteria! Maybe you want to fly from any of the 3 SF-area airports to any of the 3 NYC-area airports anytime during the week of Thanksgiving, for example. And you want to do it cheaply. You can search for all of those parameters and get the results compiled into one list.
 
 ### Mission: Don't Anger Southwest
 My goal here is to make it easier for you (and me) to fly Southwest without angering the Southwest Powers-That-Be. Southwest has previously taken down tools in this vein to protect their business model, which I respect and am trying not to disrupt. To that end:
