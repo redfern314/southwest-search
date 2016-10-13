@@ -101,9 +101,9 @@ def page_parse(data):
     return options.values()
 
 
-def pretty_print_flights(flights, sort, lowest_fare, max_stops, reverse, stop_info):
+def pretty_print_flights(flights, sort, lowest_fare, max_stops, reverse, verbose):
     keys = ["flight_num", "depart", "arrive", "fares", "route", "num_stops", "flight_time"]
-    if stop_info:
+    if verbose:
         keys.append("stop_info")
     flight_list = []
     for flight in flights:
@@ -132,12 +132,14 @@ parser.add_argument('-s', '--sort', action='store', choices=["flight_num", "depa
 parser.add_argument('-r', '--reverse', action='store_true', help="Reverse sort order for key of choice.",
                     default=False)
 parser.add_argument('-l', '--show-only-lowest-fare', action='store_true', help="Only shows the lowest fare " +
-                    "for each route. (Usually a 'Wanna Get Away?' fare, but could be a different type.")
+                    "for each route. (Usually a 'Wanna Get Away?' fare, but could be a different type.)")
 parser.add_argument('-m', '--max-stops', type=int, help="Filter for flights with this many stops or less.")
 parser.add_argument('-e', '--export-file', type=str, help="Save results to a file. Useful if you want to " +
                     "sort and filter the same results different ways without re-making the server requests.")
 parser.add_argument('-i', '--import-file', type=str, help="Load results from a file create with --export.")
-parser.add_argument('-v', '--stop-info', action='store_true', help="Display verbose info about stops.")
+parser.add_argument('-v', '--verbose', action='store_true', help="Display verbose info about stops. This is" +
+                    " usually only helpful to distinguish between stops where you change planes and stops " +
+                    "where you don't have to get off the plane.")
 
 args = parser.parse_args(namespace=None)
 
@@ -172,4 +174,4 @@ if args.export_file is not None:
         json.dump(options, f)
 
 pretty_print_flights(options, args.sort, args.show_only_lowest_fare, args.max_stops, args.reverse,
-                     args.stop_info)
+                     args.verbose)
