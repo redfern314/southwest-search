@@ -60,9 +60,9 @@ def page_parse(data):
         except:
             continue
 
-    titleRE = re.compile("Departing flight (?P<flight_num>[0-9/]*) \$(?P<fare>[0-9]*) (?P<depart>[0-9]?[0-9]:[0-9]*(?:AM|PM)) depart " +
+    titleRE = re.compile("Departing flight (?P<flight_num>[0-9/]*) (?P<depart>[0-9]?[0-9]:[0-9]*(?:AM|PM)) depart " +
                          "(?P<arrive>[0-9]?[0-9]:[0-9]*(?:AM|PM)) arrive (?P<stop_info>.*)")
-    valueRE = re.compile("(?P<date>[0-9]* [0-9]* [0-9]*),(?:[^,]*,){3}(?P<flight_time>[^,]*),(?P<stop_list>(?:[^,]*,[a-zA-Z]*,[a-zA-Z]*,(?:[^,]*,){6}[^,]*,?)+)")
+    valueRE = re.compile("(?P<date>[0-9]* [0-9]* [0-9]*),(?:[^,]*),([^@]*@){11}(?P<fare>[0-9.]*)@[^,]*,(?:[^,])*,(?P<flight_time>[^,]*),(?P<stop_list>(?:[^,]*,[a-zA-Z]*,[a-zA-Z]*,(?:[^,]*,){6}[^,]*,?)+)")
     segmentsRE = re.compile("[^,]*,(?P<depart_airport>[a-zA-Z]*),(?P<arrive_airport>[a-zA-Z]*),(?:[^,]*,){6}([^,]*),?")
 
     options = {}
@@ -84,10 +84,10 @@ def page_parse(data):
                 arrive += timedelta(days=1)
 
             if titlematch.group('flight_num') in options:
-                options[titlematch.group('flight_num')]["fares"].append(int(titlematch.group(2)))
+                options[titlematch.group('flight_num')]["fares"].append(float(valuematch.group('fare')))
                 options[titlematch.group('flight_num')]["fares"].sort()
             else:
-                options[titlematch.group('flight_num')] = ({"fares": [int(titlematch.group(2))],
+                options[titlematch.group('flight_num')] = ({"fares": [float(valuematch.group('fare'))],
                                                             "depart": depart.strftime("%Y/%m/%d %H:%M"),
                                                             "arrive": arrive.strftime("%Y/%m/%d %H:%M"),
                                                             "route": route,
