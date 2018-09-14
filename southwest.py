@@ -2,13 +2,10 @@ import argparse
 import cookielib
 import itertools
 import json
-import mechanize
-import re
 import sys
 import tabulate
 import time
-from datetime import datetime, timedelta
-from bs4 import BeautifulSoup
+from selenium import webdriver
 
 # Airports that Southwest operates out of
 cities = ['ABQ', 'ALB', 'AMA', 'ATL', 'AUA', 'AUS', 'BDL', 'BHM', 'BNA', 'BOI', 'BOS', 'BOT', 'BUF', 'BUR',
@@ -20,94 +17,63 @@ cities = ['ABQ', 'ALB', 'AMA', 'ATL', 'AUA', 'AUS', 'BDL', 'BHM', 'BNA', 'BOI', 
           'RDU', 'RIC', 'RNO', 'ROC', 'RSW', 'SAN', 'SAT', 'SDF', 'SEA', 'SFC', 'SFO', 'SJC', 'SJD', 'SJO',
           'SJU', 'SLC', 'SMF', 'SNA', 'STL', 'TPA', 'TUL', 'TUS', 'WDC']
 
+def is_search_form(form):
+    return form.attrs.get("class") == "swa-header--search-overlay"
 
-def page_grab(date, depart, arrive):
-    br = mechanize.Browser()
+def page_grab(d, date, depart, arrive):
+    try:
+        d.get("http://www.southwest.com/")
+        time.sleep(1)
 
-    # Cookie Jar
-    cj = cookielib.LWPCookieJar()
-    br.set_cookiejar(cj)
+        d.find_elements_by_id("trip-type-one-way")[0].click()
+        d.find_elements_by_id("air-city-departure")[0].clear()
+        d.find_elements_by_id("air-city-departure")[0].send_keys(depart)
+        d.find_elements_by_id("air-city-arrival")[0].clear()
+        d.find_elements_by_id("air-city-arrival")[0].send_keys(arrive)
+        d.find_elements_by_id("air-date-departure")[0].clear()
+        d.find_elements_by_id("air-date-departure")[0].send_keys(date)
+        d.find_elements_by_id("jb-booking-form-submit-button")[0].click()
+    except Exception as e:
+        print e
 
-    # Browser options
-    br.set_handle_equiv(True)
-    br.set_handle_redirect(True)
-    br.set_handle_referer(True)
-    br.set_handle_robots(False)
-    br.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=1)
-
-    # You can set your own personal user agent here if you want; doesn't really matter
-    br.addheaders = [('User-agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
-
-    br.open("http://www.southwest.com/flight/search-flight.html")
-    br.select_form(name="buildItineraryForm")
-    br["twoWayTrip"] = ["false"]
-    br["originAirport"] = [depart]
-    br["destinationAirport"] = [arrive]
-    br["outboundDateString"] = date
-
-    return br.submit(name="submitButton").read()
-
-
-def page_parse(data):
-
-    page = BeautifulSoup(data, 'html.parser')
-
-    elements = []
-    for x in page.find_all('input'):
+def page_parse(d, date, depart_city, arrive_city):
+    options = []
+    rows = d.find_elements_by_class_name("air-booking-select-detail")
+    for flight in rows:
         try:
-            if "upsellOutboundRadio" in x.attrs['class']:
-                elements.append(x)
-        except:
-            continue
-
-    titleRE = re.compile("Departing flight (?P<flight_num>[0-9/]*) (?P<depart>[0-9]?[0-9]:[0-9]*(?:AM|PM)) depart " +
-                         "(?P<arrive>[0-9]?[0-9]:[0-9]*(?:AM|PM)) arrive (?P<stop_info>.*)")
-    valueRE = re.compile("(?P<date>[0-9]* [0-9]* [0-9]*),(?:[^,]*),([^@]*@){11}(?P<fare>[0-9.]*)@[^,]*,(?:[^,])*,(?P<flight_time>[^,]*),(?P<stop_list>(?:[^,]*,[a-zA-Z]*,[a-zA-Z]*,(?:[^,]*,){6}[^,]*,?)+)")
-    segmentsRE = re.compile("[^,]*,(?P<depart_airport>[a-zA-Z]*),(?P<arrive_airport>[a-zA-Z]*),(?:[^,]*,){6}([^,]*),?")
-
-    options = {}
-    for element in elements:
-        try:
-            titlematch = titleRE.match(element.attrs['title'])
-            valuematch = valueRE.match(element.attrs['value'])
-            segmentmatch = segmentsRE.findall(valuematch.group('stop_list'))
-
-            route = [segmentmatch[0][0]]
-            for seg in segmentmatch:
-                if seg[2] != '-':
-                    route.append(seg[2])
-                route.append(seg[1])
-
-            depart = datetime.strptime(valuematch.group('date') + " " + titlematch.group('depart'), "%Y %m %d %I:%M%p")
-            arrive = datetime.strptime(valuematch.group('date') + " " + titlematch.group('arrive'), "%Y %m %d %I:%M%p")
-            if arrive < depart:
-                arrive += timedelta(days=1)
-
-            if titlematch.group('flight_num') in options:
-                options[titlematch.group('flight_num')]["fares"].append(float(valuematch.group('fare')))
-                options[titlematch.group('flight_num')]["fares"].sort()
-            else:
-                options[titlematch.group('flight_num')] = ({"fares": [float(valuematch.group('fare'))],
-                                                            "depart": depart.strftime("%Y/%m/%d %H:%M"),
-                                                            "arrive": arrive.strftime("%Y/%m/%d %H:%M"),
-                                                            "route": route,
-                                                            "stop_info": titlematch.group('stop_info'),
-                                                            "flight_num": titlematch.group('flight_num'),
-                                                            "flight_time": valuematch.group('flight_time').zfill(5),
-                                                            "num_stops": len(route)-2})
+            option = {}
+            option["date"] = date
+            option["flight"] = flight.find_elements_by_class_name("flight-numbers--flight-number")[0].text
+            option["depart"] = ""
+            option["arrive"] = ""
+            for t in flight.find_elements_by_class_name("air-operations-time-status"):
+                if t.get_attribute("type") == "origination":
+                    option["depart"] = t.text
+                elif t.get_attribute("type") == "destination":
+                    option["arrive"] = t.text
+            option["fares"] = []
+            for f in flight.find_elements_by_class_name("fare-button--value-total"):
+                option["fares"].append(int(f.text))
+            option["fares"].sort()
+            stops = flight.find_elements_by_class_name("flight-stops--item")
+            option["route"] = [depart_city]
+            for s in stops:
+                option["route"].append(s.text.split('\n')[0])
+            option["route"].append(arrive_city)
+            option["stops"] = len(option["route"])
+            option["duration"] = flight.find_elements_by_class_name("flight-stops--duration-time")[0].text
+            options.append(option)
         except Exception as e:
             print e
 
-    return options.values()
+    return options
 
 
-def pretty_print_flights(flights, sort, lowest_fare, max_stops, reverse, verbose):
-    keys = ["flight_num", "depart", "arrive", "fares", "route", "num_stops", "flight_time"]
-    if verbose:
-        keys.append("stop_info")
+def pretty_print_flights(flights, sort, lowest_fare, max_stops, reverse):
+    keys = ["flight", "date", "depart", "arrive", "fares", "route", "stops", "duration"]
     flight_list = []
     for flight in flights:
-        if max_stops is not None and flight["num_stops"] > max_stops:
+        if max_stops is not None and flight["stops"] > max_stops:
             continue
 
         if lowest_fare:
@@ -127,8 +93,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-a', '--arrival-cities', action='store', nargs="+", required=True)
 parser.add_argument('-d', '--departure-cities', action='store', nargs="+", required=True)
 parser.add_argument('-t', '--dates', action='store', nargs="+", required=True)
-parser.add_argument('-s', '--sort', action='store', choices=["flight_num", "depart", "arrive", "fares",
-                    "num_stops", "flight_time"], help="Choose which column you want to sort results by.")
+parser.add_argument('-s', '--sort', action='store', choices=["flight", "depart", "arrive", "fares",
+                    "stops", "duration"], help="Choose which column you want to sort results by.")
 parser.add_argument('-r', '--reverse', action='store_true', help="Reverse sort order for key of choice.",
                     default=False)
 parser.add_argument('-l', '--show-only-lowest-fare', action='store_true', help="Only shows the lowest fare " +
@@ -137,9 +103,6 @@ parser.add_argument('-m', '--max-stops', type=int, help="Filter for flights with
 parser.add_argument('-e', '--export-file', type=str, help="Save results to a file. Useful if you want to " +
                     "sort and filter the same results different ways without re-making the server requests.")
 parser.add_argument('-i', '--import-file', type=str, help="Load results from a file create with --export.")
-parser.add_argument('-v', '--verbose', action='store_true', help="Display verbose info about stops. This is" +
-                    " usually only helpful to distinguish between stops where you change planes and stops " +
-                    "where you don't have to get off the plane.")
 
 args = parser.parse_args(namespace=None)
 
@@ -156,22 +119,26 @@ else:
     i = 0
     possible = len(args.dates) * len(args.departure_cities) * len(args.arrival_cities)
 
+    # init selenium
+    config = webdriver.ChromeOptions()
+    config.add_argument('headless')
+    d = webdriver.Chrome(chrome_options=config)
+
     for route in itertools.product(args.dates, args.departure_cities, args.arrival_cities):
         try:
-            page = page_grab(*route)
-            options += page_parse(page)
+            page_grab(d, *route)
+            time.sleep(5)
+            options += page_parse(d, *route)
             i += 1
             print "Processed %i/%i" % (i, possible)
-            if i < possible:
-                # do not decrease this - avoids putting undue strain on SW's servers
-                time.sleep(2)
         except Exception as e:
             print e
             continue
+
+    d.quit()
 
 if args.export_file is not None:
     with open(args.export_file, "w") as f:
         json.dump(options, f)
 
-pretty_print_flights(options, args.sort, args.show_only_lowest_fare, args.max_stops, args.reverse,
-                     args.verbose)
+pretty_print_flights(options, args.sort, args.show_only_lowest_fare, args.max_stops, args.reverse)
