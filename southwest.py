@@ -85,7 +85,7 @@ def page_parse(data):
         option['stops'] = len(flight['stopsDetails']) - 1
         hours = flight['totalDuration'] / 60
         minutes = flight['totalDuration'] % 60
-        option['duration'] = "%i:%i" % (hours, minutes)
+        option['duration'] = "%02i:%02i" % (hours, minutes)
 
         parsed.append(option)
 
