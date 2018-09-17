@@ -30,14 +30,18 @@ You must have, at a minimum:
 * Python 2.7
 * Python modules from pip or another source:
     * tabulate (0.7.7+)
+    * requests
 
 Only tested on Linux, but there's no reason it shouldn't work on OS X or Windows (if you can manage to install the Python requirements on Windows)
+
+### Upgrade Note
+The date format for the command line has changed as of September 16, 2018. Previously the date format for the command line was MM/DD/YYYY. The command line is now looking for dates in YYYY-MM-DD format.
 
 ### Setting up and using the script on Linux
 ```
 git clone https://github.com/redfern314/southwest-search.git
 cd southwest-search
-sudo pip install tabulate
+sudo pip install requests tabulate
 python southwest.py -a ARRIVAL_CITIES -d DEPARTURE_CITIES -t DATES
 ```
 
