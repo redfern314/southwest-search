@@ -98,8 +98,14 @@ def pretty_print_flights(flights, sort, lowest_fare, max_stops, reverse, verbose
         if max_stops is not None and flight["stops"] > max_stops:
             continue
 
+        # round to the nearest dollar
+        for i in range(len(flight["fares"])):
+          flight["fares"][i] = int(round(float(flight["fares"][i])))
+
         if lowest_fare:
             flight["fares"] = min(flight["fares"])
+
+        flight["route"] = "-".join(flight["route"])
 
         thisflight = []
         for key in keys:
