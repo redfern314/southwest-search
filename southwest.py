@@ -77,14 +77,14 @@ def page_parse(data):
             continue
         option['fares'].sort()
 
-        option['flight'] = "/".join(flight["flightNumbers"])
-        option['date'] = date_pattern.match(flight['departureDateTime']).group(1)
+        option['flight_num'] = "/".join(flight["flightNumbers"])
+        option['depart_date'] = date_pattern.match(flight['departureDateTime']).group(1)
         option['route'] = [flight['originationAirportCode']]
         for stop in flight['stopsDetails']:
             option['route'].append(stop['destinationAirportCode'])
-        option['depart'] = date_pattern.match(flight['departureDateTime']).group(2)
-        option['arrive'] = date_pattern.match(flight['arrivalDateTime']).group(2)
-        option['stops'] = len(flight['stopsDetails']) - 1
+        option['depart_time'] = date_pattern.match(flight['departureDateTime']).group(2)
+        option['arrive_time'] = date_pattern.match(flight['arrivalDateTime']).group(2)
+        option['num_stops'] = len(flight['stopsDetails']) - 1
         hours = flight['totalDuration'] / 60
         minutes = flight['totalDuration'] % 60
         option['duration'] = "%02i:%02i" % (hours, minutes)
@@ -95,10 +95,16 @@ def page_parse(data):
 
 
 def pretty_print_flights(flights, sort, lowest_fare, max_stops, reverse, verbose):
-    keys = ["flight", "date", "depart", "arrive", "fares", "route", "stops", "duration"]
+    keys = ["flight_num", "depart_date", "depart_time", "arrive_time", "fares", "route",
+            "num_stops", "duration"]
+
+    headers = []
+    for key in keys:
+        headers.append(key.replace("_", "\n"))
+
     flight_list = []
     for flight in flights:
-        if max_stops is not None and flight["stops"] > max_stops:
+        if max_stops is not None and flight["num_stops"] > max_stops:
             continue
 
         # round to the nearest dollar
@@ -117,19 +123,20 @@ def pretty_print_flights(flights, sort, lowest_fare, max_stops, reverse, verbose
         flight_list.append(thisflight)
 
     if sort is not None:
-        flight_list.sort(key=lambda l: l[keys.index(sort)], reverse=reverse)
-    print tabulate.tabulate(flight_list, headers=keys)
+        flight_list.sort(key=lambda item: tuple(item[keys.index(col)] for col in sort),
+                         reverse=reverse)
+    print tabulate.tabulate(flight_list, headers=headers)
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-a', '--arrival-cities', action='store', nargs="+", required=True)
 parser.add_argument('-d', '--departure-cities', action='store', nargs="+", required=True)
 parser.add_argument('-t', '--dates', action='store', nargs="+", required=True, help="")
-parser.add_argument('-s', '--sort', action='store', choices=["flight_num", "depart", "arrive",
-                                                             "fares", "num_stops", "flight_time"],
-                    help="Choose which column you want to sort results by.")
-parser.add_argument('-r', '--reverse', action='store_true',
-                    help="Reverse sort order for key of choice.", default=False)
+parser.add_argument('-s', '--sort', action='store', nargs="+", choices=["flight_num", "depart_time",
+                    "depart_date", "arrive_time", "fares", "num_stops", "duration"],
+                    help="Choose which column(s) you want to sort results by.")
+parser.add_argument('-r', '--reverse', action='store_true', help="Reverse sort order for key of " +
+                    "choice. If more than one key is given, all are reversed.", default=False)
 parser.add_argument('-l', '--show-only-lowest-fare', action='store_true', help="Only shows the " +
                     "lowest fare for each route. (Usually a 'Wanna Get Away?' fare, but could be " +
                     "a different type.)")
