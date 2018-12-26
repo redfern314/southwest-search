@@ -21,7 +21,7 @@ My goal here is to make it easier for you (and me) to fly Southwest without ange
 Any updates to the format of Southwest's API may cause very strange errors. Inputs are also not completely sanitized and may cause similar errors. If this is the case, open a Github issue and I'll try to bring it back to working order.
 
 ### Contributing
-Contributions are always welcome and appreciated. I try to stick to PEP8 where I can, with max line length of 110. If you make a change, take out a PR and include testing transcripts and I'll try to merge it in ASAP.
+Contributions are always welcome and appreciated. I try to stick to PEP8 where I can, with max line length of 100. If you make a change, take out a PR and include testing transcripts and I'll try to merge it in ASAP.
 
 ## Installation and Usage
 ### Requirements

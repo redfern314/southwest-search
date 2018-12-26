@@ -9,39 +9,40 @@ import time
 from datetime import datetime, timedelta
 
 # Airports that Southwest operates out of
-cities = ['ABQ', 'ALB', 'AMA', 'ATL', 'AUA', 'AUS', 'BDL', 'BHM', 'BNA', 'BOI', 'BOS', 'BOT', 'BUF', 'BUR',
-          'BWI', 'BZE', 'CAK', 'CHS', 'CLE', 'CLT', 'CMH', 'CNN', 'CRP', 'CUN', 'CVL', 'DAL', 'DAY', 'DCA',
-          'DEN', 'DSM', 'DTW', 'ECP', 'ELP', 'EWR', 'FLL', 'FNT', 'GEG', 'GRR', 'GSP', 'HOU', 'HRL', 'IAD',
-          'ICT', 'IND', 'ISP', 'JAX', 'LAS', 'LAX', 'LBB', 'LGA', 'LGB', 'LIR', 'LIT', 'LOS', 'MAF', 'MBJ',
-          'MCI', 'MCO', 'MDW', 'MEM', 'MEX', 'MHT', 'MKE', 'MMA', 'MSP', 'MSY', 'NAS', 'NFB', 'NWY', 'OAK',
-          'OKC', 'OMA', 'ONT', 'ORF', 'PBI', 'PDX', 'PHL', 'PHX', 'PIT', 'PNS', 'PUJ', 'PVD', 'PVR', 'PWM',
-          'RDU', 'RIC', 'RNO', 'ROC', 'RSW', 'SAN', 'SAT', 'SDF', 'SEA', 'SFC', 'SFO', 'SJC', 'SJD', 'SJO',
-          'SJU', 'SLC', 'SMF', 'SNA', 'STL', 'TPA', 'TUL', 'TUS', 'WDC']
+cities = ['ABQ', 'ALB', 'AMA', 'ATL', 'AUA', 'AUS', 'BDL', 'BHM', 'BNA', 'BOI', 'BOS', 'BOT', 'BUF',
+          'BUR', 'BWI', 'BZE', 'CAK', 'CHS', 'CLE', 'CLT', 'CMH', 'CNN', 'CRP', 'CUN', 'CVL', 'DAL',
+          'DAY', 'DCA', 'DEN', 'DSM', 'DTW', 'ECP', 'ELP', 'EWR', 'FLL', 'FNT', 'GEG', 'GRR', 'GSP',
+          'HOU', 'HRL', 'IAD', 'ICT', 'IND', 'ISP', 'JAX', 'LAS', 'LAX', 'LBB', 'LGA', 'LGB', 'LIR',
+          'LIT', 'LOS', 'MAF', 'MBJ', 'MCI', 'MCO', 'MDW', 'MEM', 'MEX', 'MHT', 'MKE', 'MMA', 'MSP',
+          'MSY', 'NAS', 'NFB', 'NWY', 'OAK', 'OKC', 'OMA', 'ONT', 'ORF', 'PBI', 'PDX', 'PHL', 'PHX',
+          'PIT', 'PNS', 'PUJ', 'PVD', 'PVR', 'PWM', 'RDU', 'RIC', 'RNO', 'ROC', 'RSW', 'SAN', 'SAT',
+          'SDF', 'SEA', 'SFC', 'SFO', 'SJC', 'SJD', 'SJO', 'SJU', 'SLC', 'SMF', 'SNA', 'STL', 'TPA',
+          'TUL', 'TUS', 'WDC']
 
 API_URL = "https://www.southwest.com/api/air-booking/v1/air-booking/page/air/booking/shopping"
 API_KEY = "l7xx944d175ea25f4b9c903a583ea82a1c4c"
 
 
 def page_grab(date, depart, arrive):
-    payload = {"originationAirportCode":depart,
-               "destinationAirportCode":arrive,
-               "returnAirportCode":"",
-               "departureDate":date,
-               "departureTimeOfDay":"ALL_DAY",
-               "returnDate":"",
-               "returnTimeOfDay":"ALL_DAY",
-               "adultPassengersCount":"1",
-               "seniorPassengersCount":"0",
-               "fareType":"USD",
-               "passengerType":"ADULT",
-               "tripType":"oneway",
-               "promoCode":"",
-               "reset":"true",
-               "redirectToVision":"true",
-               "int":"HOMEQBOMAIR",
-               "leapfrogRequest":"true",
-               "application":"air-booking",
-               "site":"southwest"}
+    payload = {"originationAirportCode": depart,
+               "destinationAirportCode": arrive,
+               "returnAirportCode": "",
+               "departureDate": date,
+               "departureTimeOfDay": "ALL_DAY",
+               "returnDate": "",
+               "returnTimeOfDay": "ALL_DAY",
+               "adultPassengersCount": "1",
+               "seniorPassengersCount": "0",
+               "fareType": "USD",
+               "passengerType": "ADULT",
+               "tripType": "oneway",
+               "promoCode": "",
+               "reset": "true",
+               "redirectToVision": "true",
+               "int": "HOMEQBOMAIR",
+               "leapfrogRequest": "true",
+               "application": "air-booking",
+               "site": "southwest"}
     headers = {
         'content-type': "application/json",
         'x-api-key': API_KEY,
@@ -54,6 +55,7 @@ def page_grab(date, depart, arrive):
         return json.loads(response.text)
     else:
         return {}
+
 
 def page_parse(data):
     if (data is {}) or (not data['success']):
@@ -91,6 +93,7 @@ def page_parse(data):
 
     return parsed
 
+
 def pretty_print_flights(flights, sort, lowest_fare, max_stops, reverse, verbose):
     keys = ["flight", "date", "depart", "arrive", "fares", "route", "stops", "duration"]
     flight_list = []
@@ -100,7 +103,7 @@ def pretty_print_flights(flights, sort, lowest_fare, max_stops, reverse, verbose
 
         # round to the nearest dollar
         for i in range(len(flight["fares"])):
-          flight["fares"][i] = int(round(float(flight["fares"][i])))
+            flight["fares"][i] = int(round(float(flight["fares"][i])))
 
         if lowest_fare:
             flight["fares"] = min(flight["fares"])
@@ -117,23 +120,29 @@ def pretty_print_flights(flights, sort, lowest_fare, max_stops, reverse, verbose
         flight_list.sort(key=lambda l: l[keys.index(sort)], reverse=reverse)
     print tabulate.tabulate(flight_list, headers=keys)
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('-a', '--arrival-cities', action='store', nargs="+", required=True)
 parser.add_argument('-d', '--departure-cities', action='store', nargs="+", required=True)
 parser.add_argument('-t', '--dates', action='store', nargs="+", required=True, help="")
-parser.add_argument('-s', '--sort', action='store', choices=["flight_num", "depart", "arrive", "fares",
-                    "num_stops", "flight_time"], help="Choose which column you want to sort results by.")
-parser.add_argument('-r', '--reverse', action='store_true', help="Reverse sort order for key of choice.",
-                    default=False)
-parser.add_argument('-l', '--show-only-lowest-fare', action='store_true', help="Only shows the lowest fare " +
-                    "for each route. (Usually a 'Wanna Get Away?' fare, but could be a different type.)")
-parser.add_argument('-m', '--max-stops', type=int, help="Filter for flights with this many stops or less.")
-parser.add_argument('-e', '--export-file', type=str, help="Save results to a file. Useful if you want to " +
-                    "sort and filter the same results different ways without re-making the server requests.")
-parser.add_argument('-i', '--import-file', type=str, help="Load results from a file create with --export.")
-parser.add_argument('-v', '--verbose', action='store_true', help="Display verbose info about stops. This is" +
-                    " usually only helpful to distinguish between stops where you change planes and stops " +
-                    "where you don't have to get off the plane.")
+parser.add_argument('-s', '--sort', action='store', choices=["flight_num", "depart", "arrive",
+                                                             "fares", "num_stops", "flight_time"],
+                    help="Choose which column you want to sort results by.")
+parser.add_argument('-r', '--reverse', action='store_true',
+                    help="Reverse sort order for key of choice.", default=False)
+parser.add_argument('-l', '--show-only-lowest-fare', action='store_true', help="Only shows the " +
+                    "lowest fare for each route. (Usually a 'Wanna Get Away?' fare, but could be " +
+                    "a different type.)")
+parser.add_argument('-m', '--max-stops', type=int,
+                    help="Filter for flights with this many stops or less.")
+parser.add_argument('-e', '--export-file', type=str, help="Save results to a file. Useful if you " +
+                    "want to sort and filter the same results different ways without re-making " +
+                    "the server requests.")
+parser.add_argument('-i', '--import-file', type=str,
+                    help="Load results from a file create with --export.")
+parser.add_argument('-v', '--verbose', action='store_true', help="Display verbose info about " +
+                    "stops. This is usually only helpful to distinguish between stops where " +
+                    "you change planes and stops where you don't have to get off the plane.")
 
 args = parser.parse_args(namespace=None)
 
