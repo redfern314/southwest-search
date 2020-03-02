@@ -5,6 +5,16 @@ Author: Derek Redfern
 
 License: MIT
 
+## READ THIS FIRST
+This script is currently mostly-broken due to some additions by SW to their API. Until it can be reverse-engineered, you'll need to do some manual steps for this to work. Screenshot to guide you is below.
+1. Open up your web browser's network console (F12 -> Network in chrome)
+2. Go to SW's website and make a legitimate search
+3. Look for the request that was made to https://www.southwest.com/api/air-booking/v1/air-booking/page/air/booking/shopping
+4. Look at the headers attached to that request. Copy and paste the ones that start with `ee30zvqlwf` (there should be 6 of them) into southwest.py at line 45. `ee30zvqlwf-d` and `ee30zvqlwf-z` likely don't need to be changed.
+5. You should be able to run this script for X days after following the above steps. I'm assuming the headers will eventually expire and you'll need to regenerate them, but I don't know what X is.
+
+![Header inspection](headers.png)
+
 ## Description
 This script is a rudimentary search engine for Southwest Airlines flights. I created it because I love flying Southwest SO MUCH, but the search functionality on their website is incredibly painful when you have flexible airports or flexible dates. Flying anywhere with more than 1 or 2 variables is a nightmare - you have to open multiple browser windows to southwest.com for each possible combination.
 
