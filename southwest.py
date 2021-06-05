@@ -84,11 +84,12 @@ def page_parse(data):
         option['flight_num'] = "/".join(flight["flightNumbers"])
         option['depart_date'] = date_pattern.match(flight['departureDateTime']).group(1)
         option['route'] = [flight['originationAirportCode']]
-        for stop in flight['stopsDetails']:
-            option['route'].append(stop['destinationAirportCode'])
+        for segment in flight['segments']:
+            for stop in segment['stopsDetails']:
+                option['route'].append(stop['destinationAirportCode'])
         option['depart_time'] = date_pattern.match(flight['departureDateTime']).group(2)
         option['arrive_time'] = date_pattern.match(flight['arrivalDateTime']).group(2)
-        option['num_stops'] = len(flight['stopsDetails']) - 1
+        option['num_stops'] = len(flight['segments']) - 1
         hours = flight['totalDuration'] / 60
         minutes = flight['totalDuration'] % 60
         option['duration'] = "%02i:%02i" % (hours, minutes)
