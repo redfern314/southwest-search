@@ -5,8 +5,14 @@ Author: Derek Redfern
 
 License: MIT
 
-## Project Status - Abandoned
-This project has unfortunately been broken for several years, and is unlikely to get any better. Please don't create new issues against it, but feel free to create a PR if you're able to get it working again :)
+## Project Status - ARCHIVED
+The main complaints I had when I originally wrote this tool have since been resolved:
+* Southwest's main site now natively supports multiple origin/destination airports
+* Southwest flights are [now available](https://www.travelandleisure.com/southwest-airlines-kayak-flights-can-be-booked-8690854) on major aggregators (Google Flights, Kayak)
+
+and as noted in the Issues tab, this tool breaks frequently based on SW's website API changes. It's not worth it to me to continue maintaining this tool when flight aggregators have all the same functionality now.
+
+Feel free to fork this repository if it still fits any of your needs!
 
 ## READ THIS FIRST
 This script is currently mostly-broken due to some additions by SW to their API. Until it can be reverse-engineered, you'll need to do some manual steps for this to work. Screenshot to guide you is below.
